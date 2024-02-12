@@ -1,0 +1,19 @@
+---
+- name: Update Time
+  hosts: all
+  become: true
+
+  tasks:
+  - name: apt Update All
+    ansible.builtin.apt:
+      name: "*"
+      update_cache: yes
+  - name: apt Upgrade All
+    ansible.builtin.apt:
+      upgrade: dist
+  - name: apt ntpdate
+    ansible.builtin.apt:
+      name: ntpdate
+      state: latest
+  - name: Reboot machine
+    ansible.builtin.apt:

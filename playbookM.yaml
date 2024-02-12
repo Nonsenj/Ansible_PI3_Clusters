@@ -1,0 +1,62 @@
+---
+- name: setting master node
+  hosts: MasterHost
+  become: ture
+
+  tasks:
+  - name: Create a ext4 filesystem
+    community.general.filesystem:
+      fstype: ext4
+      dev: /dev/sda1
+  - name: Create the mount directory
+    ansible.builtin.file:
+      path: /clusterfs
+      state: directory
+      owner: nobody
+      group: nogroup
+      mode: '0777'
+  - name: get uuid from /dev/sda1
+    ansible.builtin.command: blkid -s UUID -o value /dev/sda1
+    register: uuid
+  - name: config /etc/fstab
+    ansible.builtin.lineinfile:
+      path: /etc/fstab
+      line: UUID="{{uuid.stdout}}" /clusterfs ext4 defaults 0 2
+  - name: command mount
+    ansible.builtin.command: mount -a
+  - name: Change permissions
+    ansible.builtin.file:
+      path: /clusterfs
+      owner: nobody
+      group: nogroup
+      mode: '0766'
+  - name: apt install nfs-kernel-server
+    ansible.builtin.apt:
+     name: nfs-kernel-server
+     state: present
+  - name: Expport the NFS share
+    ansible.builtin.lineinfile:
+      path: /etc/exports
+      line: /clusterfs 10.0.1.0/24(rw,sync,no_root_squash,no_subtree_check)
+  - name: Update the NFS kernel server
+    ansible.builtin.command: exportfs -a
+  - name: config hosts
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "10.0.1.10\tnode1\n10.0.1.11\tnode2\n10.0.1.12\tnode3"
+  - name: apt install slurm-wlm
+    ansible.builtin.apt:
+      name: slurm-wlm
+      state: present
+  - name: slurm configuration
+    ansible.builtin.copy:
+      src: slurm.conf
+      dest: /clusterfs/slurm.conf
+  - name: slurm cgroub
+    ansible.builtin.copy:
+      src: cgroup.conf
+      dest: /clusterfs/cgroup.conf
+  - name: slurm cgroup_allowed_devices_file.conf
+    ansible.builtin.copy:
+      src: cgroup_allowed_devices_file.conf
+      dest: /clusterfs/cgroup_allowed_devices_file.conf

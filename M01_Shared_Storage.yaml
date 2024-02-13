@@ -1,0 +1,40 @@
+---
+- name: setting master node
+  hosts: MasterHost
+  become: true
+
+  tasks:
+  - name: format the drive
+    ansible.builtin.command: mkfs.ext4 /dev/sda1
+  - name: Create the mount directory
+    ansible.builtin.file:
+      path: /clusterfs
+      state: directory
+      owner: nobody
+      group: nogroup
+      mode: '0777'
+  - name: get uuid from /dev/sda1
+    ansible.builtin.command: blkid -s UUID -o value /dev/sda1
+    register: uuid
+  - name: config /etc/fstab
+    ansible.builtin.lineinfile:
+      path: /etc/fstab
+      line: UUID={{uuid.stdout}} /clusterfs ext4 defaults 0 2
+  - name: command mount
+    ansible.builtin.command: mount -a
+  - name: Change permissions
+    ansible.builtin.file:
+      path: /clusterfs
+      owner: nobody
+      group: nogroup
+      mode: '0766'
+  - name: apt install nfs-kernel-server
+    ansible.builtin.apt:
+     name: nfs-kernel-server
+     state: present
+  - name: Expport the NFS share
+    ansible.builtin.lineinfile:
+      path: /etc/exports
+      line: /clusterfs 10.0.1.0/24(rw,sync,no_root_squash,no_subtree_check)
+  - name: Update the NFS kernel server
+    ansible.builtin.command: exportfs -a

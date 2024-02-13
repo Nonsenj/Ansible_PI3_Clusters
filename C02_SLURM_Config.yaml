@@ -1,0 +1,53 @@
+---
+- name: Slurm config client node
+  hosts: ClientHost
+  become: true
+
+  tasks:
+  - name: apt install slurmd
+    ansible.builtin.apt:
+      name: slurmd
+      state: present
+  - name: apt install slurm-client
+    ansible.builtin.apt:
+      name: slurm-client
+      state: present
+
+  - name: config hosts
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "10.0.1.10\tnode1\n10.0.1.11\tnode2\n10.0.1.12\tnode3"
+
+  - name: fetch munge
+    ansible.builtin.copy:
+      src: /clusterfs/munge.key
+      dest: /etc/munge/munge.key
+      remote_src: true
+  - name: fetch slurm configuration
+    ansible.builtin.copy:
+      src: /clusterfs/slurm.conf
+      dest: /etc/slurm/slurm.conf
+      remote_src: true
+  - name: fetch slurm cgroub
+    ansible.builtin.copy:
+      src: /clusterfs/cgroup.conf
+      dest:  /etc/slurm/cgroup.conf
+      remote_src: true
+  - name: fetch slurm cgroup_allowed_devices_file.conf
+    ansible.builtin.copy:
+      src: /clusterfs/cgroup_allowed_devices_file.conf
+      dest: /etc/slurm/cgroup_allowed_devices_file.conf
+      remote_src: true
+
+  - name: Enable munge
+    ansible.builtin.command: systemctl enable munge
+  - name: Start munge
+    ansible.builtin.command: systemctl start munge
+
+  - name: Enable slurmd
+    ansible.builtin.command: systemctl enable slurmd
+  - name: Start slurmd
+    ansible.builtin.command: systemctl start slurmd
+
+  - name: Reboot machine
+    ansible.builtin.reboot:

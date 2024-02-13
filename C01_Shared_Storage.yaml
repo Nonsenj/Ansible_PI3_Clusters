@@ -1,0 +1,23 @@
+---
+- name: setting shared storage ClientHost node
+  hosts: ClientHost
+  become: true
+
+  tasks:
+  - name: apt install nfs-common -y
+    ansible.builtin.apt:
+      name: nfs-common
+      state: present
+  - name: Create the mount directory
+    ansible.builtin.file:
+      path: /clusterfs
+      state: directory
+      owner: nobody
+      group: nogroup
+      mode: '0777'
+  - name: config /etc/fstab
+    ansible.builtin.lineinfile:
+      path: /etc/fstab
+      line: 10.0.1.10:/clusterfs /clusterfs nfs defaults 0 0
+  - name: command mount
+    ansible.builtin.command: mount -a

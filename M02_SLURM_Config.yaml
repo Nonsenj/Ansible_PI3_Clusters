@@ -1,0 +1,63 @@
+---
+- name: Slurm config master node
+  hosts: MasterHost
+  become: true
+
+  tasks:
+  - name: config hosts
+    ansible.builtin.lineinfile:
+      path: /etc/hosts
+      line: "10.0.1.10\tnode1\n10.0.1.11\tnode2\n10.0.1.12\tnode3"
+  - name: apt install slurm-wlm
+    ansible.builtin.apt:
+      name: slurm-wlm
+      state: present
+
+  - name: slurm configuration
+    ansible.builtin.copy:
+      src: slurm.conf
+      dest: /etc/slurm/slurm.conf
+  - name: slurm cgroub
+    ansible.builtin.copy:
+      src: cgroup.conf
+      dest: /etc/slurm/cgroup.conf
+  - name: slurm cgroup_allowed_devices_file.conf
+    ansible.builtin.copy:
+      src: cgroup_allowed_devices_file.conf
+      dest: /etc/slurm/cgroup_allowed_devices_file.conf
+
+  - name: slurm configuration share
+    ansible.builtin.copy:
+      src: /etc/slurm/slurm.conf
+      dest: /clusterfs/slurm.conf
+      remote_src: true
+  - name: slurm cgroub share
+    ansible.builtin.copy:
+      src: /etc/slurm/cgroup.conf
+      dest: /clusterfs/cgroup.conf
+      remote_src: true
+  - name: slurm cgroup_allowed_devices_file.conf share
+    ansible.builtin.copy:
+      src: /etc/slurm/cgroup_allowed_devices_file.conf
+      dest: /clusterfs/cgroup_allowed_devices_file.conf
+      remote_src: true
+  - name: Munge Key share
+    ansible.builtin.copy:
+      src: /etc/munge/munge.key
+      dest: /clusterfs/munge.key
+      remote_src: true
+
+  - name: Enable munge
+    ansible.builtin.command: systemctl enable munge
+  - name: Start munge
+    ansible.builtin.command: systemctl start munge
+  - name: Enable slurmd
+    ansible.builtin.command: systemctl enable slurmd
+  - name: Start slurmd
+    ansible.builtin.command: systemctl start slurmd
+  - name: Enable slurmctld
+    ansible.builtin.command: systemctl enable slurmctld
+  - name: Start slurmctld
+    ansible.builtin.command: systemctl start slurmctld
+  - name: Reboot machine
+    ansible.builtin.reboot:

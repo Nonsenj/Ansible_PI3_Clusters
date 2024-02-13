@@ -1,13 +1,11 @@
 ---
-- name: setting master node
+- name: setting shared storage master node
   hosts: MasterHost
-  become: ture
+  become: true
 
   tasks:
   - name: Create a ext4 filesystem
-    community.general.filesystem:
-      fstype: ext4
-      dev: /dev/sda1
+    ansible.builtin.command: mkfs.ext4 /dev/sda1
   - name: Create the mount directory
     ansible.builtin.file:
       path: /clusterfs
@@ -60,3 +58,19 @@
     ansible.builtin.copy:
       src: cgroup_allowed_devices_file.conf
       dest: /clusterfs/cgroup_allowed_devices_file.conf
+  - name: Enable munge
+    ansible.builtin.command: systemctl enable munge
+  - name: Start munge
+    ansible.builtin.command: systemctl start munge
+  - name: Enable slurmd
+    ansible.builtin.command: systemctl enable slurmd
+  - name: Start slurmd
+    ansible.builtin.command: systemctl start slurmd
+  - name: Enable slurmctld
+    ansible.builtin.command: systemctl enable slurmctld
+  - name: Start slurmctld
+    ansible.builtin.command: systemctl start slurmctld
+  - name: Reboot machine
+    ansible.builtin.apt:
+
+
